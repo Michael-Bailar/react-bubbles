@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import {axiosWithAuth} from "../utils/axiosWithAuth";
 
 const initialColor = {
   color: "",
@@ -7,9 +7,11 @@ const initialColor = {
 };
 
 const ColorList = ({ colors, updateColors }) => {
-  console.log(colors);
+  
   const [editing, setEditing] = useState(false);
   const [colorToEdit, setColorToEdit] = useState(initialColor);
+  const [colorToAdd, setColorToAdd] = useState({color: '', code: ''})
+  console.log(colorToAdd);
 
   const editColor = color => {
     setEditing(true);
@@ -18,18 +20,91 @@ const ColorList = ({ colors, updateColors }) => {
 
   const saveEdit = e => {
     e.preventDefault();
+    setEditing(false)
+    console.log('colorToEdit', colorToEdit)
+    axiosWithAuth()
+      .put(`/api/colors/${colorToEdit.id}`, colorToEdit)
+      .then(res => {
+        console.log(res)
+        axiosWithAuth()
+          .get('/api/colors')
+          .then(res => {
+            updateColors(res.data)
+          })
+          .catch(err => console.log(err))
+      })
+      .catch(err => console.log(err))
     // Make a put request to save your updated color
     // think about where will you get the id from...
     // where is is saved right now?
   };
 
   const deleteColor = color => {
+    axiosWithAuth()
+      .delete(`/api/colors/${color.id}`)
+      .then(res => {
+        console.log(res)
+        axiosWithAuth()
+          .get('/api/colors')
+          .then(res => {
+            updateColors(res.data)
+          })
+          .catch(err => console.log(err))
+      })
+      .catch(err => console.log(err))
     // make a delete request to delete this color
   };
+
+  const handleAddChange = e => {
+    e.preventDefault()
+    let value = e.target.value
+    if (e.target.name === 'code') {
+      value = {hex: value}
+    }
+
+    setColorToAdd({
+      ...colorToAdd,
+      [e.target.name]: value
+    })
+  }
+
+  const handleAddSubmit = e => {
+    e.preventDefault()
+    console.log(colorToAdd)
+    axiosWithAuth()
+      .post('/api/colors', colorToAdd)
+      .then(res => {
+        console.log(res)
+        axiosWithAuth()
+          .get('/api/colors')
+          .then(res => {
+            updateColors(res.data)
+          })
+          .catch(err => console.log(err))
+      })
+      .catch(err => {console.log(err)})
+  }
 
   return (
     <div className="colors-wrap">
       <p>colors</p>
+      <form onSubmit={handleAddSubmit}>
+        <input 
+          type='text'
+          name='color'
+          placeholder='color name'
+          value={colorToAdd.color}
+          onChange={handleAddChange}
+        />
+        <input 
+          type='text'
+          name='code'
+          placeholder='hex id'
+          value={colorToAdd.code.hex}
+          onChange={handleAddChange}
+        />
+        <button>Add Color</button>
+      </form>
       <ul>
         {colors.map(color => (
           <li key={color.color} onClick={() => editColor(color)}>
